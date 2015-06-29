@@ -41,7 +41,6 @@ var payload = {
 var pin = [];
 var read = {};
 board.on("ready", function() {
-  // Assuming a button is attached to pin 9
 
 //handlepayload(payload4);
 
