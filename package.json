@@ -1,0 +1,17 @@
+{
+  "name": "meshblu--dynamic-j5",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "debug": "^2.1.3",
+    "johnny-five": "^0.8.58",
+    "meshblu": "^1.21.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "exit 0"
+  },
+  "author": "Octoblu <dev@octoblu.com>",
+  "license": "MIT"
+}
