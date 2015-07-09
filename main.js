@@ -47,7 +47,7 @@ var OPTIONS_SCHEMA = {
           "action": {
             "title": "Action",
             "type": "string",
-            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servoTo"]
+            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo"]
           },
           "pin": {
             "title": "Pin",
@@ -138,7 +138,7 @@ var testOptions = { "components": [
     },
     {
       "name": "Servo1",
-      "action": "servoTo",
+      "action": "servo",
       "pin": "6"
     }
   ]};
@@ -160,6 +160,8 @@ conn.update({
 // Wait for the board to be ready for message passing
 // board-specific code
   board.on('ready', function() {
+
+    var servo = [];
 
 conn.whoami({}, function(data) {
 
@@ -195,8 +197,17 @@ components.forEach(function(payload) {
     case "analogWrite":
           board.pinMode(payload.pin, five.Pin.PWM);         
       break;
-    case "servoTo":
-          board.pinMode(payload.pin, five.Pin.SERVO);     
+    case "servo":
+          servo[payload.name] = new five.Servo({
+          pin: payload.pin,
+          });  
+      break;
+    case "PCA9685-Servo":
+        servo[payload.name] = new five.Servo({
+          address: 0x40,
+          controller: "PCA9685",
+          pin: payload.pin,
+          });
       break;
 
   } //end switch case
@@ -249,8 +260,13 @@ conn.update({
     case "analogWrite":
           board.analogWrite(component[payload.name].pin, value);         
       break;
-    case "servoTo":
-          board.servoWrite(component[payload.name].pin, value);     
+    case "servo":
+          servo[payload.name].stop();
+          servo[payload.name].to(value);     
+      break;
+    case "PCA9685-Servo":
+           servo[payload.name].stop();
+           servo[payload.name].to(value);
       break;
 
   } //end switch case
