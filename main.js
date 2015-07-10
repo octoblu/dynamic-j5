@@ -23,7 +23,7 @@ var MESSAGE_SCHEMA = {
     "name": {
       "title": "Name",
       "type": "string",
-      "enum": names 
+      "enum": names
     },
     "value": {
       "title": "Value",
@@ -61,7 +61,7 @@ var OPTIONS_SCHEMA = {
             "type": "string",
             "description": "The pin this function uses."
           }
-          
+
         },
         "required": [
           "name",
@@ -74,7 +74,7 @@ var OPTIONS_SCHEMA = {
 };
 
 var OPTIONS_FORM = [
-  
+
   {
     "key": "components",
     "add": "New",
@@ -99,8 +99,8 @@ var FORMSCHEMA = ["*"];
 var conn = meshblu.createConnection({
   "uuid": meshbluJSON.uuid,
   "token": meshbluJSON.token,
-  "server": "meshblu.octoblu.com", // optional- defaults to ws://meshblu.octoblu.com
-  "port": 80  // optional- defaults to 80
+  "server": meshbluJSON.server, // optional- defaults to ws://meshblu.octoblu.com
+  "port": meshbluJSON.port  // optional- defaults to 80
 });
 
 conn.on("notReady", function(data) {
@@ -170,20 +170,30 @@ conn.update({
 
 
 conn.whoami({}, function(data) {
+if(_.has(data.options,"components")){
+    configBoard(data);
+}else{
+  conn.update({
+      "uuid": meshbluJSON.uuid,
+      "token": meshbluJSON.token,
+      "options": testOptions
+    });
+    data.options = testOptions;
+    configBoard(data);
+}
 
-  configBoard(data);
   });
 
 
 conn.on('config', function(data) {
-
+if(_.has(data.options,"components")){
 if(!(_.isEqual(data.options.components, components))){
 
   configBoard(data);
 
     }else {return;}
 
-
+}
        }); //end on config
 
 
@@ -192,7 +202,7 @@ if(!(_.isEqual(data.options.components, components))){
 
       console.log(data);
       handlePayload(data);
-      
+
     }); // end Meshblu connection onMessage
 
 
@@ -200,10 +210,10 @@ var configBoard = function(data){
 
   var servo = [];
 
-if(data.options.components){
+if(_.has(data.options, "components")){
     components = data.options.components;
   }else{
-    components = testOptions;
+    components = testOptions.components;
   }
 
 components.forEach(function(payload) {
@@ -220,25 +230,25 @@ components.forEach(function(payload) {
               read[payload.name] = value;
               console.log(value);
               });
-        
+
       break;
     case "digitalWrite":
-      board.pinMode(payload.pin, board.MODES.OUTPUT);      
+      board.pinMode(payload.pin, board.MODES.OUTPUT);
       break;
     case "analogRead":
 
          board.pinMode(payload.pin, five.Pin.ANALOG);
            board.analogRead(payload.pin, function(value) {
               read[payload.name] = value;
-              });       
+              });
       break;
     case "analogWrite":
-          board.pinMode(payload.pin, five.Pin.PWM);         
+          board.pinMode(payload.pin, five.Pin.PWM);
       break;
     case "servo":
           servo[payload.name] = new five.Servo({
           pin: payload.pin,
-          });  
+          });
       break;
     case "PCA9685-Servo":
         servo[payload.name] = new five.Servo({
@@ -259,7 +269,7 @@ MESSAGE_SCHEMA = {
     "name": {
       "title": "Name",
       "type": "string",
-      "enum": names 
+      "enum": names
     },
     "value": {
       "title": "Value",
@@ -291,14 +301,14 @@ var handlePayload = function(data){
 
   switch(component[payload.name].action){
     case "digitalWrite":
-          board.digitalWrite(component[payload.name].pin, value);        
+          board.digitalWrite(component[payload.name].pin, value);
       break;
     case "analogWrite":
-          board.analogWrite(component[payload.name].pin, value);         
+          board.analogWrite(component[payload.name].pin, value);
       break;
     case "servo":
           servo[payload.name].stop();
-          servo[payload.name].to(value);     
+          servo[payload.name].to(value);
       break;
     case "PCA9685-Servo":
            servo[payload.name].stop();
