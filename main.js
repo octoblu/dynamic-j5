@@ -156,8 +156,7 @@ conn.update({
     "messageSchema": MESSAGE_SCHEMA,
     "messageFormSchema": FORMSCHEMA,
     "optionsSchema" : OPTIONS_SCHEMA,
-    "optionsForm" : OPTIONS_FORM,
-    "options" : testOptions
+    "optionsForm" : OPTIONS_FORM
   });
 
 // Wait for the board to be ready for message passing
@@ -171,8 +170,9 @@ conn.update({
 
 
 conn.whoami({}, function(data) {
-configBoard(data);
-});
+
+  configBoard(data);
+  });
 
 
 conn.on('config', function(data) {
@@ -200,7 +200,11 @@ var configBoard = function(data){
 
   var servo = [];
 
-components = data.options.components;
+if(data.options.components){
+    components = data.options.components;
+  }else{
+    components = testOptions;
+  }
 
 components.forEach(function(payload) {
     console.log(payload);
