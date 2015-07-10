@@ -4,6 +4,7 @@
 var meshblu = require("meshblu");
 var meshbluJSON = require("./meshblu.json");
 var fs = require("fs");
+var _ = require("underscore");
 var five = require("johnny-five");
 var board = new five.Board();
 
@@ -11,6 +12,7 @@ var names = [];
 var component = {};
 var functions = [];
 var read = {};
+var components;
 
 // Specifies how you want your message payload to be passed
 // from Octoblu to your device
@@ -44,6 +46,11 @@ var OPTIONS_SCHEMA = {
       "items": {
         "type": "object",
         "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string",
+            "description": "Name this component anything you like. (i.e Left_Motor). Sensor output will show up under this name in payload"
+          },
           "action": {
             "title": "Action",
             "type": "string",
@@ -53,12 +60,8 @@ var OPTIONS_SCHEMA = {
             "title": "Pin",
             "type": "string",
             "description": "The pin this function uses."
-          },
-          "name": {
-            "title": "Name",
-            "type": "string",
-            "description": "Name this component anything you like. (i.e Left_Motor). Sensor output will show up under this name in payload"
           }
+          
         },
         "required": [
           "name",
@@ -159,14 +162,45 @@ conn.update({
 
 // Wait for the board to be ready for message passing
 // board-specific code
+
+
+
   board.on('ready', function() {
 
-    var servo = [];
+
+
 
 conn.whoami({}, function(data) {
+configBoard(data);
+});
 
 
-  var components = data.options.components;
+conn.on('config', function(data) {
+
+if(!(_.isEqual(data.options.components, components))){
+
+  configBoard(data);
+
+    }else {return;}
+
+
+       }); //end on config
+
+
+  // Handles incoming Octoblu messages
+    conn.on('message', function(data) {
+
+      console.log(data);
+      handlePayload(data);
+      
+    }); // end Meshblu connection onMessage
+
+
+var configBoard = function(data){
+
+  var servo = [];
+
+components = data.options.components;
 
 components.forEach(function(payload) {
     console.log(payload);
@@ -230,6 +264,7 @@ MESSAGE_SCHEMA = {
   }
 }
 
+
 conn.update({
     "uuid": meshbluJSON.uuid,
     "token": meshbluJSON.token,
@@ -240,16 +275,13 @@ conn.update({
   });
 
 
-});
+}
 
 
-    // Handles incoming Octoblu messages
-    conn.on('message', function(data) {
 
-      console.log(data);
+var handlePayload = function(data){
 
-      var payload = data.payload;
-
+       var payload = data.payload;
 
       var value = payload.value;
 
@@ -270,8 +302,9 @@ conn.update({
       break;
 
   } //end switch case
-      
-    }); // end Meshblu connection onMessage
+}
+
+
 
  setInterval(function(){
 
