@@ -220,7 +220,6 @@ components.forEach(function(payload) {
     console.log(payload);
 
     component[payload.name] = {"pin" : payload.pin, "action" : payload.action};
-    names.push(payload.name);
 
     switch(payload.action){
     case "digitalRead":
@@ -234,6 +233,7 @@ components.forEach(function(payload) {
       break;
     case "digitalWrite":
       board.pinMode(payload.pin, board.MODES.OUTPUT);
+      names.push(payload.name);
       break;
     case "analogRead":
 
@@ -244,11 +244,13 @@ components.forEach(function(payload) {
       break;
     case "analogWrite":
           board.pinMode(payload.pin, five.Pin.PWM);
+          names.push(payload.name);
       break;
     case "servo":
           servo[payload.name] = new five.Servo({
           pin: payload.pin,
           });
+          names.push(payload.name);
       break;
     case "PCA9685-Servo":
         servo[payload.name] = new five.Servo({
@@ -256,6 +258,7 @@ components.forEach(function(payload) {
           controller: "PCA9685",
           pin: payload.pin,
           });
+          names.push(payload.name);
       break;
 
   } //end switch case
