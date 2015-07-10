@@ -13,7 +13,7 @@ var component = {};
 var functions = [];
 var read = {};
 var components;
-
+var servo = [];
 // Specifies how you want your message payload to be passed
 // from Octoblu to your device
 
@@ -153,8 +153,6 @@ conn.on('ready', function(data) {
 conn.update({
     "uuid": meshbluJSON.uuid,
     "token": meshbluJSON.token,
-    "messageSchema": MESSAGE_SCHEMA,
-    "messageFormSchema": FORMSCHEMA,
     "optionsSchema" : OPTIONS_SCHEMA,
     "optionsForm" : OPTIONS_FORM
   });
@@ -172,7 +170,7 @@ conn.update({
 conn.whoami({}, function(data) {
 if(_.has(data.options,"components")){
     configBoard(data);
-}else{
+}else if(!(_.has(data.options,"components"))){
   conn.update({
       "uuid": meshbluJSON.uuid,
       "token": meshbluJSON.token,
@@ -208,7 +206,9 @@ if(!(_.isEqual(data.options.components, components))){
 
 var configBoard = function(data){
 
-  var servo = [];
+  component = [];
+  servo = [];
+  names = [];
 
 if(_.has(data.options, "components")){
     components = data.options.components;
@@ -287,17 +287,15 @@ conn.update({
     "optionsSchema" : OPTIONS_SCHEMA,
     "optionsForm" : OPTIONS_FORM
   });
-
-
-}
+} // end configBoard
 
 
 
 var handlePayload = function(data){
-
-       var payload = data.payload;
-
-      var value = payload.value;
+  var payload = data.payload;
+  var value = payload.value;
+  if(!component[payload.name])
+    return;
 
   switch(component[payload.name].action){
     case "digitalWrite":
@@ -307,6 +305,7 @@ var handlePayload = function(data){
           board.analogWrite(component[payload.name].pin, value);
       break;
     case "servo":
+          console.log('servo', servo);
           servo[payload.name].stop();
           servo[payload.name].to(value);
       break;
