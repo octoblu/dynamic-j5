@@ -50,17 +50,20 @@ var OPTIONS_SCHEMA = {
           "name": {
             "title": "Name",
             "type": "string",
-            "description": "Name this component anything you like. (i.e Left_Motor). Sensor output will show up under this name in payload"
+            "description": "Name this component anything you like. (i.e Left_Motor). Sensor output will show up under this name in payload",
+            "required": true
           },
           "action": {
             "title": "Action",
             "type": "string",
-            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo"]
+            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo"],
+            "required": true
           },
           "pin": {
             "title": "Pin",
             "type": "string",
-            "description": "The pin this function uses."
+            "description": "The pin this function uses.",
+            "required": true
           }
 
         },
@@ -206,9 +209,11 @@ conn.on('ready', function(data) {
 
     var configBoard = function(data) {
 
+
         component = [];
         servo = [];
         names = [];
+        read = {};
 
         if (_.has(data.options, "components")) {
           components = data.options.components;
@@ -218,6 +223,10 @@ conn.on('ready', function(data) {
 
         components.forEach(function(payload) {
           debug(payload);
+
+          if(!(_.has(payload, "pin"))){
+            return;
+          }
 
           component[payload.name] = {
             "pin": payload.pin,
@@ -229,8 +238,10 @@ conn.on('ready', function(data) {
               debug("digitalRead");
               board.pinMode(payload.pin, five.Pin.INPUT);
               board.digitalRead(payload.pin, function(value) {
+                if(_.has(component, payload.name)){
                 read[payload.name] = value;
                 debug(value);
+                }
               });
 
               break;
@@ -242,7 +253,9 @@ conn.on('ready', function(data) {
 
               board.pinMode(payload.pin, five.Pin.ANALOG);
               board.analogRead(payload.pin, function(value) {
+                if(_.has(component, payload.name)){
                 read[payload.name] = value;
+                }
               });
               break;
             case "analogWrite":
@@ -324,7 +337,7 @@ conn.on('ready', function(data) {
 
     setInterval(function() {
 
-      if (read) {
+      if (!(_.isEmpty(read))) {
         debug(read);
 
         conn.message({
