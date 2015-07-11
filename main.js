@@ -7,6 +7,7 @@ var fs = require("fs");
 var _ = require("underscore");
 var five = require("johnny-five");
 var board = new five.Board();
+var debug = require('debug')('dynamic');
 
 var names = [];
 var component = {};
@@ -86,8 +87,7 @@ var OPTIONS_FORM = [
       "components[].action",
       "components[].pin"
     ]
-  },
-  {
+  }, {
     "type": "submit",
     "style": "btn-info",
     "title": "OK"
@@ -100,65 +100,63 @@ var conn = meshblu.createConnection({
   "uuid": meshbluJSON.uuid,
   "token": meshbluJSON.token,
   "server": meshbluJSON.server, // optional- defaults to ws://meshblu.octoblu.com
-  "port": meshbluJSON.port  // optional- defaults to 80
+  "port": meshbluJSON.port // optional- defaults to 80
 });
 
 conn.on("notReady", function(data) {
-  console.log('UUID FAILED AUTHENTICATION!');
-  console.log('not ready', data);
+  debug('UUID FAILED AUTHENTICATION!');
+  debug('not ready', data);
 
   // Register a device
   conn.register({
     "type": "dynamic-j5"
-  }, function (data) {
-    console.log('registered device', data);
+  }, function(data) {
+    debug('registered device', data);
     meshbluJSON.uuid = data.uuid;
     meshbluJSON.token = data.token;
     fs.writeFile('meshblu.json', JSON.stringify(meshbluJSON), function(err) {
-      if(err) return;
+      if (err) return;
     });
 
-  // Login to SkyNet to fire onready event
-  conn.authenticate({
-    "uuid": data.uuid,
-    "token": data.token
-    }, function (data) {
-      console.log('authenticating', data);
+    // Login to SkyNet to fire onready event
+    conn.authenticate({
+      "uuid": data.uuid,
+      "token": data.token
+    }, function(data) {
+      debug('authenticating', data);
     });
   });
 });
 
-var testOptions = { "components": [
-    {
-      "name": "Left",
-      "action": "digitalWrite",
-      "pin": "13"
-    },
-    {
-      "name": "pindata",
-      "action": "analogRead",
-      "pin": "3"
-    },
-    {
-      "name": "Servo1",
-      "action": "servo",
-      "pin": "6"
-    }
-  ]};
+var testOptions = {
+  "components": [{
+    "name": "Left",
+    "action": "digitalWrite",
+    "pin": "13"
+  }, {
+    "name": "pindata",
+    "action": "analogRead",
+    "pin": "3"
+  }, {
+    "name": "Servo1",
+    "action": "servo",
+    "pin": "6"
+  }]
+};
 
 
 // Wait for connection to be ready to send/receive messages
 conn.on('ready', function(data) {
-  console.log('ready event', data);
-conn.update({
+  debug('ready event', data);
+  conn.update({
     "uuid": meshbluJSON.uuid,
     "token": meshbluJSON.token,
-    "optionsSchema" : OPTIONS_SCHEMA,
-    "optionsForm" : OPTIONS_FORM
+    "optionsSchema": OPTIONS_SCHEMA,
+    "optionsForm": OPTIONS_FORM
   });
 
-// Wait for the board to be ready for message passing
-// board-specific code
+  // Wait for the board to be ready for message passing
+  // board-specific code
 
 
 
@@ -167,175 +165,177 @@ conn.update({
 
 
 
-conn.whoami({}, function(data) {
-if(_.has(data.options,"components")){
-    configBoard(data);
-}else if(!(_.has(data.options,"components"))){
-  conn.update({
-      "uuid": meshbluJSON.uuid,
-      "token": meshbluJSON.token,
-      "options": testOptions
+    conn.whoami({}, function(data) {
+      if (_.has(data.options, "components")) {
+        configBoard(data);
+      } else if (!(_.has(data.options, "components"))) {
+        conn.update({
+          "uuid": meshbluJSON.uuid,
+          "token": meshbluJSON.token,
+          "options": testOptions
+        });
+        data.options = testOptions;
+        configBoard(data);
+      }
+
     });
-    data.options = testOptions;
-    configBoard(data);
-}
-
-  });
 
 
-conn.on('config', function(data) {
-if(_.has(data.options,"components")){
-if(!(_.isEqual(data.options.components, components))){
+    conn.on('config', function(data) {
+      if (_.has(data.options, "components")) {
+        if (!(_.isEqual(data.options.components, components))) {
 
-  configBoard(data);
+          configBoard(data);
 
-    }else {return;}
+        } else {
+          return;
+        }
 
-}
-       }); //end on config
+      }
+    }); //end on config
 
 
-  // Handles incoming Octoblu messages
+    // Handles incoming Octoblu messages
     conn.on('message', function(data) {
 
-      console.log(data);
+      debug(data);
       handlePayload(data);
 
     }); // end Meshblu connection onMessage
 
 
-var configBoard = function(data){
+    var configBoard = function(data) {
 
-  component = [];
-  servo = [];
-  names = [];
+        component = [];
+        servo = [];
+        names = [];
 
-if(_.has(data.options, "components")){
-    components = data.options.components;
-  }else{
-    components = testOptions.components;
-  }
+        if (_.has(data.options, "components")) {
+          components = data.options.components;
+        } else {
+          components = testOptions.components;
+        }
 
-components.forEach(function(payload) {
-    console.log(payload);
+        components.forEach(function(payload) {
+          debug(payload);
 
-    component[payload.name] = {"pin" : payload.pin, "action" : payload.action};
+          component[payload.name] = {
+            "pin": payload.pin,
+            "action": payload.action
+          };
 
-    switch(payload.action){
-    case "digitalRead":
-          console.log("digitalRead");
-          board.pinMode(payload.pin, five.Pin.INPUT);
-           board.digitalRead(payload.pin, function(value) {
-              read[payload.name] = value;
-              console.log(value);
+          switch (payload.action) {
+            case "digitalRead":
+              debug("digitalRead");
+              board.pinMode(payload.pin, five.Pin.INPUT);
+              board.digitalRead(payload.pin, function(value) {
+                read[payload.name] = value;
+                debug(value);
               });
 
-      break;
-    case "digitalWrite":
-      board.pinMode(payload.pin, board.MODES.OUTPUT);
-      names.push(payload.name);
-      break;
-    case "analogRead":
+              break;
+            case "digitalWrite":
+              board.pinMode(payload.pin, board.MODES.OUTPUT);
+              names.push(payload.name);
+              break;
+            case "analogRead":
 
-         board.pinMode(payload.pin, five.Pin.ANALOG);
-           board.analogRead(payload.pin, function(value) {
-              read[payload.name] = value;
+              board.pinMode(payload.pin, five.Pin.ANALOG);
+              board.analogRead(payload.pin, function(value) {
+                read[payload.name] = value;
               });
-      break;
-    case "analogWrite":
-          board.pinMode(payload.pin, five.Pin.PWM);
-          names.push(payload.name);
-      break;
-    case "servo":
-          servo[payload.name] = new five.Servo({
-          pin: payload.pin,
-          });
-          names.push(payload.name);
-      break;
-    case "PCA9685-Servo":
-        servo[payload.name] = new five.Servo({
-          address: 0x40,
-          controller: "PCA9685",
-          pin: payload.pin,
-          });
-          names.push(payload.name);
-      break;
+              break;
+            case "analogWrite":
+              board.pinMode(payload.pin, five.Pin.PWM);
+              names.push(payload.name);
+              break;
+            case "servo":
+              servo[payload.name] = new five.Servo({
+                pin: payload.pin,
+              });
+              names.push(payload.name);
+              break;
+            case "PCA9685-Servo":
+              servo[payload.name] = new five.Servo({
+                address: 0x40,
+                controller: "PCA9685",
+                pin: payload.pin,
+              });
+              names.push(payload.name);
+              break;
 
-  } //end switch case
-
-
-}); // end for each
-
-MESSAGE_SCHEMA = {
-  "type": "object",
-  "properties": {
-    "name": {
-      "title": "Name",
-      "type": "string",
-      "enum": names
-    },
-    "value": {
-      "title": "Value",
-      "type": "number"
-    }
-  }
-}
+          } //end switch case
 
 
-conn.update({
-    "uuid": meshbluJSON.uuid,
-    "token": meshbluJSON.token,
-    "messageSchema": MESSAGE_SCHEMA,
-    "messageFormSchema": FORMSCHEMA,
-    "optionsSchema" : OPTIONS_SCHEMA,
-    "optionsForm" : OPTIONS_FORM
-  });
-} // end configBoard
+        }); // end for each
+
+        MESSAGE_SCHEMA = {
+          "type": "object",
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string",
+              "enum": names
+            },
+            "value": {
+              "title": "Value",
+              "type": "number"
+            }
+          }
+        }
+
+
+        conn.update({
+          "uuid": meshbluJSON.uuid,
+          "token": meshbluJSON.token,
+          "messageSchema": MESSAGE_SCHEMA,
+          "messageFormSchema": FORMSCHEMA,
+          "optionsSchema": OPTIONS_SCHEMA,
+          "optionsForm": OPTIONS_FORM
+        });
+      } // end configBoard
 
 
 
-var handlePayload = function(data){
-  var payload = data.payload;
-  var value = payload.value;
-  if(!component[payload.name])
-    return;
+    var handlePayload = function(data) {
+      var payload = data.payload;
+      var value = payload.value;
+      if (!component[payload.name])
+        return;
 
-  switch(component[payload.name].action){
-    case "digitalWrite":
+      switch (component[payload.name].action) {
+        case "digitalWrite":
           board.digitalWrite(component[payload.name].pin, value);
-      break;
-    case "analogWrite":
+          break;
+        case "analogWrite":
           board.analogWrite(component[payload.name].pin, value);
-      break;
-    case "servo":
-          console.log('servo', servo);
+          break;
+        case "servo":
+          debug('servo', servo);
           servo[payload.name].stop();
           servo[payload.name].to(value);
-      break;
-    case "PCA9685-Servo":
-           servo[payload.name].stop();
-           servo[payload.name].to(value);
-      break;
+          break;
+        case "PCA9685-Servo":
+          servo[payload.name].stop();
+          servo[payload.name].to(value);
+          break;
+      } //end switch case
+    }
 
-  } //end switch case
-}
+    setInterval(function() {
 
+      if (read) {
+        debug(read);
 
+        conn.message({
+          "devices": "*",
+          "payload": read
+        });
 
- setInterval(function(){
-
-  if(read){
-  console.log(read);
-
-   conn.message({
-      "devices": "*",
-      "payload": read
-    });
-
-  }
+      }
 
 
-  },500);
+    }, 500);
 
 
   }); // end johnny-five board onReady
