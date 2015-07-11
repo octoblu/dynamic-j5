@@ -9,5 +9,7 @@ Any sensor components you add will automatically send in a payload with a key ba
 Essentially, define your device's abilities and pin configuration in options, and in the designer you can control it using function names from a drop down that make sense to you!
 
 ![alt text](https://raw.githubusercontent.com/octoblu/dynamic-j5/master/imgs/1.png "Logo Title Text 1")
+![alt text](https://raw.githubusercontent.com/octoblu/dynamic-j5/master/imgs/4.png "Logo Title Text 1")
+
 ![alt text](https://raw.githubusercontent.com/octoblu/dynamic-j5/master/imgs/2.png "Logo Title Text 1")
 ![alt text](https://raw.githubusercontent.com/octoblu/dynamic-j5/master/imgs/3.png "Logo Title Text 1")
