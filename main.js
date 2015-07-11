@@ -133,11 +133,11 @@ conn.on("notReady", function(data) {
 
 var testOptions = {
   "components": [{
-    "name": "Left",
+    "name": "Led_Pin_13",
     "action": "digitalWrite",
     "pin": "13"
   }, {
-    "name": "pindata",
+    "name": "some_sensor",
     "action": "analogRead",
     "pin": "3"
   }, {
