@@ -7,6 +7,9 @@ var fs = require("fs");
 var _ = require("underscore");
 var five = require("johnny-five");
 var board = new five.Board();
+//var board = new five.Board({ port: "/dev/tty.usbmodemfd121" });
+var Oled = require('oled-js');
+var font = require('oled-font-5x7');
 var debug = require('debug')('dynamic');
 
 var names = [];
@@ -15,6 +18,7 @@ var functions = [];
 var read = {};
 var components;
 var servo = [];
+var oled = [];
 // Specifies how you want your message payload to be passed
 // from Octoblu to your device
 
@@ -28,7 +32,7 @@ var MESSAGE_SCHEMA = {
     },
     "value": {
       "title": "Value",
-      "type": "number"
+      "type": "string"
     }
   }
 };
@@ -56,13 +60,13 @@ var OPTIONS_SCHEMA = {
           "action": {
             "title": "Action",
             "type": "string",
-            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo"],
+            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo", "oled-i2c"],
             "required": true
           },
           "pin": {
             "title": "Pin",
             "type": "string",
-            "description": "The pin this function uses.",
+            "description": "Pin or i2c address used for this component",
             "required": true
           }
 
@@ -214,6 +218,8 @@ conn.on('ready', function(data) {
         servo = [];
         names = [];
         read = {};
+        oled = [];
+        //oled = [];
 
         if (_.has(data.options, "components")) {
           components = data.options.components;
@@ -275,6 +281,19 @@ conn.on('ready', function(data) {
                 pin: payload.pin,
               });
               names.push(payload.name);
+            case "oled-i2c":
+                  debug("oledddoo");
+                  var opts = {
+                        width: 128,
+                        height: 64,
+                        address: parseInt(payload.pin)
+                      };
+                  oled[payload.name] = new Oled(board, five, opts);
+                  oled[payload.name].clearDisplay();
+                  oled[payload.name].setCursor(1, 1);
+                  oled[payload.name].writeString(font, 3, 'Skynet Lives', 1, true);
+                  oled[payload.name].update();
+                  names.push(payload.name);
               break;
 
           } //end switch case
@@ -292,7 +311,7 @@ conn.on('ready', function(data) {
             },
             "value": {
               "title": "Value",
-              "type": "number"
+              "type": "string"
             }
           }
         }
@@ -312,7 +331,7 @@ conn.on('ready', function(data) {
 
     var handlePayload = function(data) {
       var payload = data.payload;
-      var value = payload.value;
+      var value = parseInt(payload.value);
       if (!component[payload.name])
         return;
 
@@ -331,6 +350,13 @@ conn.on('ready', function(data) {
         case "PCA9685-Servo":
           servo[payload.name].stop();
           servo[payload.name].to(value);
+          break;
+        case "oled-i2c":
+          oled[payload.name].turnOnDisplay();
+          oled[payload.name].clearDisplay();
+          oled[payload.name].update();
+          oled[payload.name].setCursor(1, 1);
+          oled[payload.name].writeString(font, 3, payload.value , 1, true);
           break;
       } //end switch case
     }
