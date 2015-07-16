@@ -6,11 +6,13 @@ var meshbluJSON = require("./meshblu.json");
 var fs = require("fs");
 var _ = require("underscore");
 var five = require("johnny-five");
-var board = new five.Board();
-//var board = new five.Board({ port: "/dev/tty.usbmodemfd121" });
+//var board = new five.Board();
+var board = new five.Board({ port: "/dev/tty.usbmodemfd121" });
 var Oled = require('oled-js');
 var font = require('oled-font-5x7');
 var debug = require('debug')('dynamic');
+
+var pixel = require("pixel.js");
 
 var names = [];
 var component = {};
@@ -19,6 +21,11 @@ var read = {};
 var components;
 var servo = [];
 var oled = [];
+
+var strip = null;
+
+var fps = 10; // how many frames per second do you want to try?
+
 // Specifies how you want your message payload to be passed
 // from Octoblu to your device
 
@@ -60,7 +67,7 @@ var OPTIONS_SCHEMA = {
           "action": {
             "title": "Action",
             "type": "string",
-            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo", "oled-i2c"],
+            "enum": ["digitalWrite", "digitalRead", "analogWrite", "analogRead", "servo", "PCA9685-Servo", "oled-i2c", "neopixel-strip(requires node-pixel-firmata)"],
             "required": true
           },
           "pin": {
@@ -294,6 +301,15 @@ conn.on('ready', function(data) {
                   oled[payload.name].writeString(font, 3, 'Skynet Lives', 1, true);
                   oled[payload.name].update();
                   names.push(payload.name);
+              break;
+            case "neopixel-strip":
+            strip[payload.name] = new pixel.Strip({
+                                      data: 6,
+                                      length: 64,
+                                      board: board,
+                                      controller: "FIRMATA",
+                            //        controller: "I2CBACKPACK"
+                                    });
               break;
 
           } //end switch case
